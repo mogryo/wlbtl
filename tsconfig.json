@@ -1,0 +1,37 @@
+{
+    "compilerOptions": {
+        "baseUrl": "./",
+        "target": "ES2023",
+        "useDefineForClassFields": true,
+        "module": "ESNext",
+        "lib": ["ES2020", "DOM", "DOM.Iterable", "es2023"],
+        "skipLibCheck": true,
+
+        "moduleResolution": "node",
+        "allowImportingTsExtensions": false,
+        "isolatedModules": true,
+        "moduleDetection": "force",
+        "noEmit": true,
+
+        "strict": true,
+        "noUnusedLocals": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedSideEffectImports": true,
+        "noUnusedParameters": true,
+
+        "noUncheckedIndexedAccess": true,
+        "incremental": true,
+        "rootDir": "src",
+        "outDir": "./build",
+        "sourceMap": true,
+        "noImplicitOverride": true,
+        "noPropertyAccessFromIndexSignature": true,
+        "allowUnreachableCode": false,
+        "noErrorTruncation": true,
+        "declaration": true,
+        "paths": {
+            "@scenes/*": ["./src/scenes/*"]
+        }
+    },
+    "include": ["src"]
+}
