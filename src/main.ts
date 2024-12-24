@@ -1,3 +1,4 @@
+import DevLoaderScene from "@scenes/DevLoaderScene";
 import DevelopmentScene from "@scenes/DevelopmentScene";
 import * as Phaser from "phaser";
 
@@ -10,7 +11,7 @@ const config: Phaser.Types.Core.GameConfig = {
             debug: true, // This will show hit box around character for example
         },
     },
-    scene: [DevelopmentScene],
+    scene: [DevLoaderScene, DevelopmentScene],
     scale: {
         width: 800,
         height: 600,
