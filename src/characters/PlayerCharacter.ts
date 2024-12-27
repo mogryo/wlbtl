@@ -3,7 +3,7 @@ import type { PlayerCursors } from "src/types/characters";
 import { match } from "ts-pattern";
 
 export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
-    static BASE_SPEED = 100;
+    static BASE_SPEED = 140;
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | number) {
         super(scene, x, y, texture, frame);
