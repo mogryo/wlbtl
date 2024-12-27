@@ -1,0 +1,44 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "demo-dev-map.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "": {
+            "scaleInDock": 1
+        },
+        "demo-dev-map.tmx": {
+            "scale": 0.67724609375,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 456.2595529920692,
+                "y": 480.62292718096614
+            }
+        },
+        "demo-tileset.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "last.exportedFilePath": "/Users/tadas.baikstis/Projects/wlbtl/src/tiled",
+    "last.imagePath": "/Users/tadas.baikstis/Projects/wlbtl/src/tiled/asset-pack-demo",
+    "map.height": 24,
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.width": 32,
+    "openFiles": [
+        "demo-tileset.tsx",
+        "demo-dev-map.tmx"
+    ],
+    "project": "demo-pack.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "demo-tileset.tsx",
+        "demo-dev-map.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx"
+}
