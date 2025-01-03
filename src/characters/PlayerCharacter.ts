@@ -1,13 +1,22 @@
 import * as Phaser from "phaser";
 import type { PlayerCursors } from "src/types/characters";
+import { HyperKnife } from "src/weapons/melee/HyperKnife";
+import { HandgunSilencer } from "src/weapons/range/HandgunSilencer";
 import { match } from "ts-pattern";
 
 export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
     static BASE_SPEED = 140;
+    handgunSilencer: HandgunSilencer;
+    hyperKnife: HyperKnife;
+    previousX = 0;
+    previousY = 0;
+    public crosshair?: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | number) {
         super(scene, x, y, texture, frame);
         this.anims.play("decert-idle-down");
+        this.handgunSilencer = new HandgunSilencer(scene);
+        this.hyperKnife = new HyperKnife(scene);
         scene.add.existing(this);
     }
 
@@ -15,7 +24,22 @@ export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
         super.update(cursors);
         this.flipImageAndBoxDuringSideMovement(cursors);
         this.anims.play(this.getMovementAnimation(cursors), true);
-        this.body?.velocity?.set(...this.getVectorXYVelocity(cursors)).setLength(PlayerCharacter.BASE_SPEED);
+        const xyVelocities = this.getVectorXYVelocity(cursors);
+        this.body?.velocity?.set(...xyVelocities).setLength(PlayerCharacter.BASE_SPEED);
+        if (this.crosshair) {
+            this.crosshair.x += this.x - this.previousX;
+            this.crosshair.y += this.y - this.previousY;
+        }
+        this.previousX = this.x;
+        this.previousY = this.y;
+    }
+
+    public fire(): void {
+        if (this.crosshair) this.handgunSilencer.fire(this, this.crosshair);
+    }
+
+    public attack(): void {
+        if (this.crosshair) this.hyperKnife.attack(this, this.crosshair);
     }
 
     private flipImageAndBoxDuringSideMovement(cursors: PlayerCursors): void {
