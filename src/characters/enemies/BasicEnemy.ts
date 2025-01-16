@@ -18,39 +18,55 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
         this.anims.play("lizard-idle");
         scene.add.existing(this);
 
-        this.moveToNextGrid = this.moveToNextGrid.bind(this);
-        this.moveToXY = this.moveToXY.bind(this);
         this.followToNextGrid = this.followToNextGrid.bind(this);
-        this.addFollowTween = this.addFollowTween.bind(this);
     }
 
     /**
      * Move object to next grid, if available.
      */
-    private moveToNextGrid() {
+    private addMoveTweenChain() {
+        const movementChain: Array<Phaser.Types.Tweens.TweenBuilderConfig> = [];
+        let previousMovePoint = new Phaser.Geom.Point(this.x, this.y);
         if (this.pathGridSequence.length > 1) {
-            const currentMovePoint = this.pathfinder.getMapGridMovePoint(
-                this.pathGridSequence.shift() as [integer, integer],
+            for (const grid of this.pathGridSequence.slice(0, this.pathGridSequence.length - 1)) {
+                const currentMovePoint = this.pathfinder.getMapGridMovePoint(grid as [integer, integer]);
+                const distance = Phaser.Math.Distance.Between(
+                    previousMovePoint.x,
+                    previousMovePoint.y,
+                    currentMovePoint.x,
+                    currentMovePoint.y,
+                );
+                movementChain.push({
+                    targets: this,
+                    x: currentMovePoint.x,
+                    y: currentMovePoint.y,
+                    duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
+                });
+                previousMovePoint = currentMovePoint;
+            }
+        }
+        if (this.pathGridSequence.length > 0 && this.moveToEndPoint) {
+            const distance = Phaser.Math.Distance.Between(
+                previousMovePoint.x,
+                previousMovePoint.y,
+                this.moveToEndPoint.x,
+                this.moveToEndPoint.y,
             );
-            const distance = Phaser.Math.Distance.Between(this.x, this.y, currentMovePoint.x, currentMovePoint.y);
-
-            this.scene.tweens.add({
-                targets: this,
-                x: currentMovePoint.x,
-                y: currentMovePoint.y,
-                duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
-                onComplete: this.moveToNextGrid,
-            });
-        } else if (this.pathGridSequence.length === 1 && this.moveToEndPoint) {
-            const distance = Phaser.Math.Distance.Between(this.x, this.y, this.moveToEndPoint.x, this.moveToEndPoint.y);
-
-            this.scene.tweens.add({
+            movementChain.push({
                 targets: this,
                 x: this.moveToEndPoint.x,
                 y: this.moveToEndPoint.y,
                 duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
             });
         }
+
+        this.scene.tweens.chain({
+            targets: this,
+            tweens: movementChain,
+            onComplete: () => {
+                this.pathGridSequence = [];
+            },
+        });
     }
 
     /**
@@ -109,7 +125,7 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
         this.behaviourMode = EnemyBehaviourMode.Neutral;
         this.pathGridSequence = this.pathfinder.calculateGridPath(this.x, this.y, x, y);
         this.moveToEndPoint = new Phaser.Geom.Point(x, y);
-        this.moveToNextGrid();
+        this.addMoveTweenChain();
     }
 
     /**
