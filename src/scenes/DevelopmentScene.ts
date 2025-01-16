@@ -1,14 +1,21 @@
 import * as Phaser from "phaser";
 import { createDecertAnimations } from "src/animations/decert";
+import { createBasicEnemyAnimations } from "src/animations/enemies";
 import { PlayerCharacter } from "src/characters/PlayerCharacter";
+import { BasicEnemy } from "src/characters/enemies/BasicEnemy";
+import type Pathfinder from "src/game-engine-tools/Pathfinder";
+import { gameEngineTools } from "src/inversify.config";
 import type { PlayerCursors } from "src/types/characters";
+import { GameEngineToolsTypes } from "src/types/inversify";
 
 export default class DevelopmentScene extends Phaser.Scene {
     private cursors?: PlayerCursors;
     private player?: PlayerCharacter;
+    private enemy?: BasicEnemy;
     private wallsLayer?: Phaser.Tilemaps.TilemapLayer | null = null;
     private crosshair?: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private eKey?: Phaser.Input.Keyboard.Key;
+    private pathfinder: Pathfinder = gameEngineTools.get<Pathfinder>(GameEngineToolsTypes.Pathfinder);
 
     constructor() {
         super("development-scene");
@@ -44,14 +51,24 @@ export default class DevelopmentScene extends Phaser.Scene {
         map.createLayer("Floor", tileSet);
         this.wallsLayer = map.createLayer("Walls", tileSet);
         this.wallsLayer?.setCollisionByProperty({ collides: true });
+
+        if (this.wallsLayer?.layer?.data) {
+            this.pathfinder.createCollisionMatrix(this.wallsLayer?.layer?.data);
+        }
     }
 
     private createPlayer() {
         createDecertAnimations(this.anims);
-        this.player = new PlayerCharacter(this, 100, 200, "decert");
+        this.player = new PlayerCharacter(this, 50, 50, "decert");
         this.physics.world.enableBody(this.player);
         this.player.body?.setSize(this.player.width * 0.5, this.player.height * 0.8);
         this.cameras.main.startFollow(this.player, true);
+    }
+
+    private createBasicEnemy() {
+        createBasicEnemyAnimations(this.anims);
+        this.enemy = new BasicEnemy(this, 240, 250, "lizard");
+        this.physics.world.enableBody(this.enemy);
     }
 
     private createCrosshair() {
@@ -82,11 +99,14 @@ export default class DevelopmentScene extends Phaser.Scene {
     create(): void {
         this.createMap();
         this.createPlayer();
+        this.createBasicEnemy();
         this.createKeyBindings();
         this.createCrosshair();
 
         if (this.player) this.player.crosshair = this.crosshair;
         if (this.wallsLayer && this.player) this.physics.add.collider(this.player, this.wallsLayer);
+        if (this.player) this.enemy?.moveToXY(this.player.x, this.player.y);
+        // if (this.player) this.enemy?.followGameObject(this.player);
     }
 
     override update(time: number, delta: number) {
@@ -95,5 +115,6 @@ export default class DevelopmentScene extends Phaser.Scene {
         if (this.player && this.cursors) {
             this.player.update(this.cursors);
         }
+        if (this.enemy) this.enemy.update(time, delta);
     }
 }

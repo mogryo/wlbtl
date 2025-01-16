@@ -29,7 +29,7 @@ export class BulletTypeProjectile extends Phaser.Physics.Arcade.Image {
             .setLength(this.speed);
         this.body?.velocity?.set(velocityVector.x, velocityVector.y);
 
-        this.setRotation(Phaser.Math.Angle.Between(shooter.x, shooter.y, crosshair.x, crosshair.y));
+        this.setRotation(angleBetweenPoints);
         this.setActive(true);
         this.setVisible(true);
         this.age = 0;

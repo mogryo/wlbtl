@@ -21,6 +21,11 @@ const config: Phaser.Types.Core.GameConfig = {
     audio: {
         noAudio: true,
     },
+    // Force the FPS limit
+    // fps: {
+    //     target: 60,
+    //     forceSetTimeOut: true,
+    // },
 };
 
 export default new Phaser.Game(config);

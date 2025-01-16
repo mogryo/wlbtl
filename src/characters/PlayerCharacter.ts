@@ -5,7 +5,7 @@ import { HandgunSilencer } from "src/weapons/range/HandgunSilencer";
 import { match } from "ts-pattern";
 
 export class PlayerCharacter extends Phaser.Physics.Arcade.Sprite {
-    static BASE_SPEED = 140;
+    static BASE_SPEED = 32 * 3;
     handgunSilencer: HandgunSilencer;
     hyperKnife: HyperKnife;
     previousX = 0;
