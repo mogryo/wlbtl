@@ -6,12 +6,12 @@ import { GameEngineToolsTypes } from "src/types/inversify";
 
 export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     static BASE_SPEED = 32 * 3;
-    public behaviourMode: EnemyBehaviourMode = EnemyBehaviourMode.Neutral;
     private pathfinder: Pathfinder = gameEngineTools.get(GameEngineToolsTypes.Pathfinder);
-    private pathGridSequence?: Array<Array<integer>>;
+    private behaviourMode: EnemyBehaviourMode = EnemyBehaviourMode.Idle;
+    private pathGridSequence: Array<Array<integer>> = [];
     private moveToEndPoint?: Phaser.Geom.Point;
-    private chaseTarget?: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image;
-    private onDestinationReach?: () => void;
+    private followTarget?: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image;
+    private followInterval?: number;
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | number) {
         super(scene, x, y, texture, frame);
@@ -20,14 +20,15 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
 
         this.moveToNextGrid = this.moveToNextGrid.bind(this);
         this.moveToXY = this.moveToXY.bind(this);
-        this.chaseToTheNextGrid = this.chaseToTheNextGrid.bind(this);
+        this.followToNextGrid = this.followToNextGrid.bind(this);
+        this.addFollowTween = this.addFollowTween.bind(this);
     }
 
     /**
-     * Move object to next grid, if available
+     * Move object to next grid, if available.
      */
     private moveToNextGrid() {
-        if (this.pathGridSequence && this.pathGridSequence.length > 1) {
+        if (this.pathGridSequence.length > 1) {
             const currentMovePoint = this.pathfinder.getMapGridMovePoint(
                 this.pathGridSequence.shift() as [integer, integer],
             );
@@ -35,12 +36,12 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
 
             this.scene.tweens.add({
                 targets: this,
-                x: currentMovePoint.x + this.width / 2,
-                y: currentMovePoint.y + this.height / 2,
+                x: currentMovePoint.x,
+                y: currentMovePoint.y,
                 duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
                 onComplete: this.moveToNextGrid,
             });
-        } else if (this.pathGridSequence && this.pathGridSequence.length === 1 && this.moveToEndPoint) {
+        } else if (this.pathGridSequence.length === 1 && this.moveToEndPoint) {
             const distance = Phaser.Math.Distance.Between(this.x, this.y, this.moveToEndPoint.x, this.moveToEndPoint.y);
 
             this.scene.tweens.add({
@@ -48,57 +49,75 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
                 x: this.moveToEndPoint.x,
                 y: this.moveToEndPoint.y,
                 duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
-                onComplete: () => {
-                    this.onDestinationReach?.();
-                },
-            });
-        }
-    }
-
-    private chaseToTheNextGrid() {
-        if (!this.chaseTarget) return;
-        const nextGridPosition = this.pathfinder.calculateNextGridPosition(
-            this.x,
-            this.y,
-            this.chaseTarget.x,
-            this.chaseTarget.y,
-        );
-
-        if (nextGridPosition) {
-            const currentMovePoint = this.pathfinder.getMapGridMovePoint(nextGridPosition as [integer, integer]);
-            const distance = Phaser.Math.Distance.Between(this.x, this.y, currentMovePoint.x, currentMovePoint.y);
-
-            this.scene.tweens.add({
-                targets: this,
-                x: currentMovePoint.x,
-                y: currentMovePoint.y,
-                duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
-                onComplete: this.chaseToTheNextGrid,
             });
         }
     }
 
     /**
-     * Object has to start moving towards the specified point
+     * Calculate next grid in sequence, to follow the target and reach it.
      */
-    public moveToXY(x: integer, y: integer, onDestinationReach?: () => void): void {
-        this.pathGridSequence = this.pathfinder.calculatePathFromTo(this.x, this.y, x, y);
+    private calculateNextGridForFollow(): [integer, integer] | undefined {
+        if (!this.followTarget) return undefined;
+        return this.pathfinder.calculateNextGrid(this.x, this.y, this.followTarget.x, this.followTarget.y) as [
+            integer,
+            integer,
+        ];
+    }
+
+    /**
+     * Add Phaser tween, for following the target.
+     */
+    private addFollowTween(nextGridPosition: [integer, integer]) {
+        const currentMovePoint = this.pathfinder.getMapGridMovePoint(nextGridPosition as [integer, integer]);
+        const distance = Phaser.Math.Distance.Between(this.x, this.y, currentMovePoint.x, currentMovePoint.y);
+
+        this.scene.tweens.add({
+            targets: this,
+            x: currentMovePoint.x,
+            y: currentMovePoint.y,
+            duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
+            onComplete: this.followToNextGrid,
+        });
+    }
+
+    /**
+     * Handle this object movement to the next grid, to get closer to the follow target.
+     */
+    private followToNextGrid() {
+        if (this.behaviourMode !== EnemyBehaviourMode.Follow) return;
+        const nextGridPosition = this.calculateNextGridForFollow();
+
+        if (nextGridPosition) {
+            this.addFollowTween(nextGridPosition as [integer, integer]);
+        } else {
+            this.followInterval = setInterval(() => {
+                if (!this.followTarget) return;
+                const nextGridPosition = this.calculateNextGridForFollow();
+
+                if (nextGridPosition) {
+                    clearInterval(this.followInterval);
+                    this.addFollowTween(nextGridPosition as [integer, integer]);
+                }
+            }, 600);
+        }
+    }
+
+    /**
+     * Move towards the specified point.
+     */
+    public moveToXY(x: integer, y: integer): void {
+        this.behaviourMode = EnemyBehaviourMode.Neutral;
+        this.pathGridSequence = this.pathfinder.calculateGridPath(this.x, this.y, x, y);
         this.moveToEndPoint = new Phaser.Geom.Point(x, y);
-        this.onDestinationReach = onDestinationReach;
         this.moveToNextGrid();
     }
 
     /**
-     *
+     * Continuously follow specified sprite or image in the world
      */
-    public followGameObject(chaseTarget: Phaser.Physics.Arcade.Sprite) {
-        this.chaseTarget = chaseTarget;
-        this.pathGridSequence = this.pathfinder.calculatePathFromTo(
-            this.x,
-            this.y,
-            this.chaseTarget.x,
-            this.chaseTarget.y,
-        );
-        this.chaseToTheNextGrid();
+    public followGameObject(followTarget: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image) {
+        this.behaviourMode = EnemyBehaviourMode.Follow;
+        this.followTarget = followTarget;
+        this.followToNextGrid();
     }
 }

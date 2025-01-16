@@ -28,10 +28,10 @@ class Pathfinder {
     /**
      * Return array for tiles to which to move sequentially
      */
-    public calculatePathFromTo(fromX: integer, fromY: integer, toX: integer, toY: integer): Array<Array<integer>> {
+    public calculateGridPath(fromX: integer, fromY: integer, toX: integer, toY: integer): Array<Array<integer>> {
         if (this.collisionMatrix.length > 0) {
-            const [fromXTile, fromYTile] = this.getMapGridIndex(fromX, fromY);
-            const [toXTile, toYTile] = this.getMapGridIndex(toX, toY);
+            const [fromXTile, fromYTile] = this.getMapGrid(fromX, fromY);
+            const [toXTile, toYTile] = this.getMapGrid(toX, toY);
             const grid = new PF.Grid(this.collisionMatrix);
             return this.finder.findPath(fromXTile, fromYTile, toXTile, toYTile, grid);
         }
@@ -39,15 +39,13 @@ class Pathfinder {
         throw new Error("Collision matrix was not created.");
     }
 
-    public calculateNextGridPosition(
-        fromX: integer,
-        fromY: integer,
-        toX: integer,
-        toY: integer,
-    ): Array<integer> | undefined {
+    /**
+     * Calculate and return single grid, representing first grid for movement to reach (toX, toY) coordinates.
+     */
+    public calculateNextGrid(fromX: integer, fromY: integer, toX: integer, toY: integer): Array<integer> | undefined {
         if (this.collisionMatrix.length > 0) {
-            const [fromXTile, fromYTile] = this.getMapGridIndex(fromX, fromY);
-            const [toXTile, toYTile] = this.getMapGridIndex(toX, toY);
+            const [fromXTile, fromYTile] = this.getMapGrid(fromX, fromY);
+            const [toXTile, toYTile] = this.getMapGrid(toX, toY);
             const grid = new PF.Grid(this.collisionMatrix);
             return this.finder.findPath(fromXTile, fromYTile, toXTile, toYTile, grid)[1];
         }
@@ -56,19 +54,19 @@ class Pathfinder {
     }
 
     /**
-     * Calculate tile center point
+     * Calculate tile center point.
      */
     public getMapGridMovePoint(gridGridIndex: [integer, integer]): Phaser.Geom.Point {
-        const x = gridGridIndex[0] * 32;
-        const y = gridGridIndex[1] * 32;
+        const x = gridGridIndex[0] * 32 + 16;
+        const y = gridGridIndex[1] * 32 + 16;
 
         return new Phaser.Geom.Point(x, y);
     }
 
     /**
-     * Calculate index of tile, give the coordinates x, y of the point
+     * Calculate index of tile, give the coordinates x, y of the point in the world.
      */
-    private getMapGridIndex(x: integer, y: integer): [integer, integer] {
+    private getMapGrid(x: integer, y: integer): [integer, integer] {
         return [Math.floor(x / 32), Math.floor(y / 32)];
     }
 }

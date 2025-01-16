@@ -3,4 +3,6 @@ export enum EnemyBehaviourMode {
     Patrolling = "patrolling",
     Overwatch = "overwatch",
     Neutral = "neutral",
+    Idle = "idle",
+    Follow = "follow",
 }
