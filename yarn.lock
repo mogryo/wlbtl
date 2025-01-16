@@ -509,18 +509,6 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.6.tgz#628effeeae2064a1b4e79f78e81d87b7e5fc7b50"
   integrity sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==
 
-"@types/lodash.chunk@^4.2.9":
-  version "4.2.9"
-  resolved "https://registry.yarnpkg.com/@types/lodash.chunk/-/lodash.chunk-4.2.9.tgz#60da44c404dfa8b01b426034c1183e5eb9b09727"
-  integrity sha512-Z9VtFUSnmT0No/QymqfG9AGbfOA4O5qB/uyP89xeZBqDAsKsB4gQFTqt7d0pHjbsTwtQ4yZObQVHuKlSOhIJ5Q==
-  dependencies:
-    "@types/lodash" "*"
-
-"@types/lodash@*":
-  version "4.17.14"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.14.tgz#bafc053533f4cdc5fcc9635af46a963c1f3deaff"
-  integrity sha512-jsxagdikDiDBeIRaPYtArcT8my4tN1og7MtMRquFT3XNA6axxyHDRUemqDz/taRDdOUn0GnGHRCuff4q48sW9A==
-
 "@types/pathfinding@^0.0.9":
   version "0.0.9"
   resolved "https://registry.yarnpkg.com/@types/pathfinding/-/pathfinding-0.0.9.tgz#a1a09c0c977fa2b8639d2d1e16ddf71674a9dc43"
