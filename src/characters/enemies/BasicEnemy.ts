@@ -1,17 +1,20 @@
 import * as Phaser from "phaser";
 import { EnemyBehaviourMode } from "src/enums/characters";
 import type Pathfinder from "src/game-engine-tools/Pathfinder";
+import type Vision from "src/game-engine-tools/Vision";
 import { gameEngineTools } from "src/inversify.config";
 import { GameEngineToolsTypes } from "src/types/inversify";
 
 export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     static BASE_SPEED = 32 * 3;
     private pathfinder: Pathfinder = gameEngineTools.get(GameEngineToolsTypes.Pathfinder);
+    private vision: Vision = gameEngineTools.get(GameEngineToolsTypes.Vision);
     private behaviourMode: EnemyBehaviourMode = EnemyBehaviourMode.Idle;
     private pathGridSequence: Array<Array<integer>> = [];
     private moveToEndPoint?: Phaser.Geom.Point;
     private followTarget?: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image;
     private followInterval?: number;
+    private followDistance?: number;
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | number) {
         super(scene, x, y, texture, frame);
@@ -97,24 +100,52 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     /**
+     * Check if follow target is in vicinity, based on distance and if there are collision tiles in-between.
+     */
+    private hasReachedDistanceDuringFollow(): boolean {
+        if (!this.followDistance && this.followTarget) {
+            return this.pathfinder.isSameGrid(this.x, this.y, this.followTarget.x, this.followTarget.y);
+        }
+
+        if (
+            this.followDistance &&
+            this.followTarget &&
+            Phaser.Math.Distance.Between(this.x, this.y, this.followTarget.x, this.followTarget.y) <=
+                this.followDistance
+        ) {
+            return this.vision.areCoordsObstructed(this.x, this.y, this.followTarget.x, this.followTarget.y);
+        }
+
+        return false;
+    }
+
+    /**
+     * Wait for follow target to start moving again, check periodically for target's position change.
+     * Once target moves, start moving after it as well.
+     */
+    private waitForFollowTargetToMove() {
+        this.followInterval = setInterval(() => {
+            if (!this.followTarget) return;
+            if (this.hasReachedDistanceDuringFollow()) return;
+
+            clearInterval(this.followInterval);
+            const nextGridPosition = this.calculateNextGridForFollow();
+            this.addFollowTween(nextGridPosition as [integer, integer]);
+        }, 600);
+    }
+
+    /**
      * Handle this object movement to the next grid, to get closer to the follow target.
      */
     private followToNextGrid() {
         if (this.behaviourMode !== EnemyBehaviourMode.Follow) return;
-        const nextGridPosition = this.calculateNextGridForFollow();
+        if (!this.followTarget) return;
 
-        if (nextGridPosition) {
-            this.addFollowTween(nextGridPosition as [integer, integer]);
+        if (this.hasReachedDistanceDuringFollow()) {
+            this.waitForFollowTargetToMove();
         } else {
-            this.followInterval = setInterval(() => {
-                if (!this.followTarget) return;
-                const nextGridPosition = this.calculateNextGridForFollow();
-
-                if (nextGridPosition) {
-                    clearInterval(this.followInterval);
-                    this.addFollowTween(nextGridPosition as [integer, integer]);
-                }
-            }, 600);
+            const nextGridPosition = this.calculateNextGridForFollow();
+            this.addFollowTween(nextGridPosition as [integer, integer]);
         }
     }
 
@@ -129,11 +160,24 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     /**
-     * Continuously follow specified sprite or image in the world
+     * Continuously follow specified sprite or image in the world.
      */
-    public followGameObject(followTarget: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image) {
+    public followGameObject(
+        followTarget: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image,
+        config?: { distance?: number },
+    ) {
         this.behaviourMode = EnemyBehaviourMode.Follow;
         this.followTarget = followTarget;
+        this.followDistance = config?.distance;
         this.followToNextGrid();
+    }
+
+    /**
+     * Stop following game object.
+     */
+    public stopFollowingGameObject() {
+        if (this.followInterval) clearInterval(this.followInterval);
+        this.followTarget = undefined;
+        this.followDistance = undefined;
     }
 }
