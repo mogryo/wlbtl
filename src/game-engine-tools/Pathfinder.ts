@@ -56,7 +56,7 @@ class Pathfinder {
     /**
      * Checks if coordinates are in the same grid
      */
-    public isSameGrid(fromX: integer, fromY: integer, toX: integer, toY: integer): boolean {
+    public areCoordsInSameGrid(fromX: integer, fromY: integer, toX: integer, toY: integer): boolean {
         const [fromXTile, fromYTile] = this.getMapGrid(fromX, fromY);
         const [toXTile, toYTile] = this.getMapGrid(toX, toY);
 
@@ -80,6 +80,9 @@ class Pathfinder {
         return [Math.floor(x / 32), Math.floor(y / 32)];
     }
 
+    /**
+     * Checks if provided Point is located in a collision grid.
+     */
     public isPointInCollisionGrid(point: Phaser.Geom.Point): boolean {
         const gridCell = this.getMapGrid(point.x, point.y);
         return this.collisionMatrix[gridCell[1]]?.[gridCell[0]] === 1;

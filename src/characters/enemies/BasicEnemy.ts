@@ -104,7 +104,7 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
      */
     private hasReachedDistanceDuringFollow(): boolean {
         if (!this.followDistance && this.followTarget) {
-            return this.pathfinder.isSameGrid(this.x, this.y, this.followTarget.x, this.followTarget.y);
+            return this.pathfinder.areCoordsInSameGrid(this.x, this.y, this.followTarget.x, this.followTarget.y);
         }
 
         if (
