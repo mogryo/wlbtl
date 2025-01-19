@@ -105,8 +105,13 @@ export default class DevelopmentScene extends Phaser.Scene {
 
         if (this.player) this.player.crosshair = this.crosshair;
         if (this.wallsLayer && this.player) this.physics.add.collider(this.player, this.wallsLayer);
-        if (this.player) this.enemy?.moveToXY(this.player.x, this.player.y);
-        // if (this.player) this.enemy?.followGameObject(this.player);
+        // if (this.player) this.enemy?.moveToXY(this.player.x, this.player.y);
+        if (this.player) this.enemy?.followGameObject(this.player);
+        // if (this.player) this.enemy?.followGameObject(this.player, { distance: 32 * 5 + 1 });
+
+        // setTimeout(() => {
+        //     this.enemy?.stopFollowingGameObject();
+        // }, 7000);
     }
 
     override update(time: number, delta: number) {
