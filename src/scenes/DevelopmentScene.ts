@@ -3,6 +3,7 @@ import { createDecertAnimations } from "src/animations/decert";
 import { createBasicEnemyAnimations } from "src/animations/enemies";
 import { PlayerCharacter } from "src/characters/PlayerCharacter";
 import { BasicEnemy } from "src/characters/enemies/BasicEnemy";
+import { PatrollingMode } from "src/enums/characters";
 import type Pathfinder from "src/game-engine-tools/Pathfinder";
 import { gameEngineTools } from "src/inversify.config";
 import type { PlayerCursors } from "src/types/characters";
@@ -105,8 +106,22 @@ export default class DevelopmentScene extends Phaser.Scene {
 
         if (this.player) this.player.crosshair = this.crosshair;
         if (this.wallsLayer && this.player) this.physics.add.collider(this.player, this.wallsLayer);
-        // if (this.player) this.enemy?.moveToXY(this.player.x, this.player.y);
-        if (this.player) this.enemy?.followGameObject(this.player);
+        // if (this.player) this.enemy?.moveToXY(this.enemy.x, this.enemy.y);
+        // if (this.player) this.enemy?.followGameObject(this.player);
+        // if (this.player)
+        //     this.enemy?.startPatrolling(
+        //         [
+        //             new Phaser.Geom.Point(250, 250),
+        //             new Phaser.Geom.Point(350, 250),
+        //             new Phaser.Geom.Point(350, 330),
+        //             new Phaser.Geom.Point(250, 330),
+        //         ],
+        //         PatrollingMode.Loop,
+        //     );
+        //
+        // setTimeout(() => {
+        //     this.enemy?.stopPatrolling();
+        // }, 7000);
         // if (this.player) this.enemy?.followGameObject(this.player, { distance: 32 * 5 + 1 });
 
         // setTimeout(() => {
