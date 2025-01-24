@@ -1,8 +1,13 @@
 export enum EnemyBehaviourMode {
-    Raid = "raid",
-    Patrolling = "patrolling",
-    Overwatch = "overwatch",
-    Neutral = "neutral",
-    Idle = "idle",
-    Follow = "follow",
+    Raid = "RAID",
+    Patrolling = "PATROLLING",
+    Overwatch = "OVERWATCH",
+    Neutral = "NEUTRAL",
+    Idle = "IDLE",
+    Follow = "FOLLOW",
+}
+
+export enum PatrollingMode {
+    Loop = "LOOP",
+    BackAndForth = "BACK_AND_FORTH",
 }

@@ -1,5 +1,5 @@
 import * as Phaser from "phaser";
-import { EnemyBehaviourMode } from "src/enums/characters";
+import { EnemyBehaviourMode, PatrollingMode } from "src/enums/characters";
 import type Pathfinder from "src/game-engine-tools/Pathfinder";
 import type Vision from "src/game-engine-tools/Vision";
 import { gameEngineTools } from "src/inversify.config";
@@ -10,11 +10,12 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     private pathfinder: Pathfinder = gameEngineTools.get(GameEngineToolsTypes.Pathfinder);
     private vision: Vision = gameEngineTools.get(GameEngineToolsTypes.Vision);
     private behaviourMode: EnemyBehaviourMode = EnemyBehaviourMode.Idle;
-    private pathGridSequence: Array<Array<integer>> = [];
     private moveToEndPoint?: Phaser.Geom.Point;
     private followTarget?: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image;
     private followInterval?: number;
     private followDistance?: number;
+    private patrolTweenChain?: Phaser.Tweens.TweenChain;
+    private keepPatrolling = false;
 
     constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | number) {
         super(scene, x, y, texture, frame);
@@ -25,13 +26,13 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     /**
-     * Move object to next grid, if available.
+     * Move object to next grid, if available. Last tween in the chain will just middle of the grid.
      */
-    private addMoveTweenChain() {
+    private async addTileDestinationMoveTweenChain(pathGridSequence: integer[][]): Promise<void> {
         const movementChain: Array<Phaser.Types.Tweens.TweenBuilderConfig> = [];
         let previousMovePoint = new Phaser.Geom.Point(this.x, this.y);
-        if (this.pathGridSequence.length > 1) {
-            for (const grid of this.pathGridSequence.slice(0, this.pathGridSequence.length - 1)) {
+        if (pathGridSequence.length > 0) {
+            for (const grid of pathGridSequence) {
                 const currentMovePoint = this.pathfinder.getMapGridMovePoint(grid as [integer, integer]);
                 const distance = Phaser.Math.Distance.Between(
                     previousMovePoint.x,
@@ -39,36 +40,87 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
                     currentMovePoint.x,
                     currentMovePoint.y,
                 );
-                movementChain.push({
-                    targets: this,
-                    x: currentMovePoint.x,
-                    y: currentMovePoint.y,
-                    duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
-                });
+                const duration = (distance / BasicEnemy.BASE_SPEED) * 1000;
+                if (duration > 0) {
+                    movementChain.push({
+                        targets: this,
+                        x: currentMovePoint.x,
+                        y: currentMovePoint.y,
+                        duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
+                    });
+                }
                 previousMovePoint = currentMovePoint;
             }
         }
-        if (this.pathGridSequence.length > 0 && this.moveToEndPoint) {
+        if (movementChain.length === 0) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+            this.patrolTweenChain = this.scene.tweens.chain({
+                targets: this,
+                tweens: movementChain,
+                onComplete: resolve,
+            });
+        });
+    }
+
+    /**
+     * Move object to next grid, if available. Last tween in the chain will be the precise coordinates.
+     */
+    private async addPreciseDestinationMoveTweenChain(pathGridSequence: integer[][]): Promise<void> {
+        const movementChain: Array<Phaser.Types.Tweens.TweenBuilderConfig> = [];
+        let previousMovePoint = new Phaser.Geom.Point(this.x, this.y);
+        if (pathGridSequence.length > 1) {
+            for (const grid of pathGridSequence.slice(0, pathGridSequence.length - 1)) {
+                const currentMovePoint = this.pathfinder.getMapGridMovePoint(grid as [integer, integer]);
+                const distance = Phaser.Math.Distance.Between(
+                    previousMovePoint.x,
+                    previousMovePoint.y,
+                    currentMovePoint.x,
+                    currentMovePoint.y,
+                );
+
+                const duration = (distance / BasicEnemy.BASE_SPEED) * 1000;
+                if (duration > 0) {
+                    movementChain.push({
+                        targets: this,
+                        x: currentMovePoint.x,
+                        y: currentMovePoint.y,
+                        duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
+                    });
+                }
+
+                previousMovePoint = currentMovePoint;
+            }
+        }
+        if (pathGridSequence.length > 0 && this.moveToEndPoint) {
             const distance = Phaser.Math.Distance.Between(
                 previousMovePoint.x,
                 previousMovePoint.y,
                 this.moveToEndPoint.x,
                 this.moveToEndPoint.y,
             );
-            movementChain.push({
-                targets: this,
-                x: this.moveToEndPoint.x,
-                y: this.moveToEndPoint.y,
-                duration: (distance / BasicEnemy.BASE_SPEED) * 1000,
-            });
+            const duration = (distance / BasicEnemy.BASE_SPEED) * 1000;
+            if (duration > 0) {
+                movementChain.push({
+                    targets: this,
+                    x: this.moveToEndPoint.x,
+                    y: this.moveToEndPoint.y,
+                    duration: duration,
+                });
+            }
+        }
+        if (movementChain.length === 0) {
+            return Promise.resolve();
         }
 
-        this.scene.tweens.chain({
-            targets: this,
-            tweens: movementChain,
-            onComplete: () => {
-                this.pathGridSequence = [];
-            },
+        return new Promise((resolve) => {
+            this.scene.tweens.chain({
+                targets: this,
+                tweens: movementChain,
+                onComplete: resolve,
+            });
         });
     }
 
@@ -152,11 +204,10 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     /**
      * Move towards the specified point.
      */
-    public moveToXY(x: integer, y: integer): void {
+    public async moveToXY(x: integer, y: integer): Promise<void> {
         this.behaviourMode = EnemyBehaviourMode.Neutral;
-        this.pathGridSequence = this.pathfinder.calculateGridPath(this.x, this.y, x, y);
         this.moveToEndPoint = new Phaser.Geom.Point(x, y);
-        this.addMoveTweenChain();
+        return this.addPreciseDestinationMoveTweenChain(this.pathfinder.calculateGridPath(this.x, this.y, x, y));
     }
 
     /**
@@ -179,5 +230,77 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
         if (this.followInterval) clearInterval(this.followInterval);
         this.followTarget = undefined;
         this.followDistance = undefined;
+    }
+
+    /**
+     * Start patrolling in loop mode
+     */
+    private async startLoopPatrolling(points: Phaser.Geom.Point[]): Promise<void> {
+        while (true) {
+            for (const point of points) {
+                if (!this.keepPatrolling) return;
+                await this.addTileDestinationMoveTweenChain(
+                    this.pathfinder.calculateGridPath(this.x, this.y, point.x, point.y),
+                );
+            }
+        }
+    }
+
+    /**
+     * Start patrolling on back and forth mode
+     */
+    private async startBackAndForthPatrolling(points: Phaser.Geom.Point[]): Promise<void> {
+        if (points[0]) {
+            await this.addTileDestinationMoveTweenChain(
+                this.pathfinder.calculateGridPath(this.x, this.y, points[0].x, points[0].y),
+            );
+        }
+
+        while (true) {
+            for (let i = 1; i < points.length; i++) {
+                if (!this.keepPatrolling) return;
+                await this.addTileDestinationMoveTweenChain(
+                    this.pathfinder.calculateGridPath(
+                        this.x,
+                        this.y,
+                        (points[i] as Phaser.Geom.Point).x,
+                        (points[i] as Phaser.Geom.Point).y,
+                    ),
+                );
+            }
+            for (let i = points.length - 1; i >= 0; i--) {
+                if (!this.keepPatrolling) return;
+                await this.addTileDestinationMoveTweenChain(
+                    this.pathfinder.calculateGridPath(
+                        this.x,
+                        this.y,
+                        (points[i] as Phaser.Geom.Point).x,
+                        (points[i] as Phaser.Geom.Point).y,
+                    ),
+                );
+            }
+        }
+    }
+
+    /**
+     * Start patrolling between specified points
+     */
+    public async startPatrolling(points: Phaser.Geom.Point[], patrollingMode: PatrollingMode): Promise<void> {
+        this.keepPatrolling = true;
+        if (patrollingMode === PatrollingMode.Loop) {
+            await this.startLoopPatrolling(points);
+        } else if (patrollingMode === PatrollingMode.BackAndForth) {
+            await this.startBackAndForthPatrolling(points);
+        }
+    }
+
+    /**
+     * Stop patrolling
+     */
+    public async stopPatrolling() {
+        this.patrolTweenChain?.stop();
+        this.patrolTweenChain?.destroy();
+        this.patrolTweenChain = undefined;
+        this.keepPatrolling = false;
     }
 }
