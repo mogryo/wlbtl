@@ -5,9 +5,11 @@ import { PlayerCharacter } from "src/characters/PlayerCharacter";
 import { BasicEnemy } from "src/characters/enemies/BasicEnemy";
 import { PatrollingMode } from "src/enums/characters";
 import type Pathfinder from "src/game-engine-tools/Pathfinder";
+import type PlayerWorld from "src/game-engine-tools/PlayerWorld";
 import { gameEngineTools } from "src/inversify.config";
 import type { PlayerCursors } from "src/types/characters";
 import { GameEngineToolsTypes } from "src/types/inversify";
+import type PhaserTools from "src/game-engine-tools/PhaserTools";
 
 export default class DevelopmentScene extends Phaser.Scene {
     private cursors?: PlayerCursors;
@@ -17,6 +19,8 @@ export default class DevelopmentScene extends Phaser.Scene {
     private crosshair?: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private eKey?: Phaser.Input.Keyboard.Key;
     private pathfinder: Pathfinder = gameEngineTools.get<Pathfinder>(GameEngineToolsTypes.Pathfinder);
+    private playerWorld: PlayerWorld = gameEngineTools.get<PlayerWorld>(GameEngineToolsTypes.PlayerWorld);
+    private phaserTools: PhaserTools = gameEngineTools.get<PhaserTools>(GameEngineToolsTypes.PhaserTools);
 
     constructor() {
         super("development-scene");
@@ -64,6 +68,7 @@ export default class DevelopmentScene extends Phaser.Scene {
         this.physics.world.enableBody(this.player);
         this.player.body?.setSize(this.player.width * 0.5, this.player.height * 0.8);
         this.cameras.main.startFollow(this.player, true);
+        this.playerWorld.player = this.player;
     }
 
     private createBasicEnemy() {
@@ -106,23 +111,25 @@ export default class DevelopmentScene extends Phaser.Scene {
 
         if (this.player) this.player.crosshair = this.crosshair;
         if (this.wallsLayer && this.player) this.physics.add.collider(this.player, this.wallsLayer);
+
+        this.phaserTools.factory = this.add;
         // if (this.player) this.enemy?.moveToXY(this.enemy.x, this.enemy.y);
-        // if (this.player) this.enemy?.followGameObject(this.player);
-        // if (this.player)
-        //     this.enemy?.startPatrolling(
-        //         [
-        //             new Phaser.Geom.Point(250, 250),
-        //             new Phaser.Geom.Point(350, 250),
-        //             new Phaser.Geom.Point(350, 330),
-        //             new Phaser.Geom.Point(250, 330),
-        //         ],
-        //         PatrollingMode.Loop,
-        //     );
-        //
-        // setTimeout(() => {
-        //     this.enemy?.stopPatrolling();
-        // }, 7000);
-        // if (this.player) this.enemy?.followGameObject(this.player, { distance: 32 * 5 + 1 });
+        // if (this.player) this.enemy?.startFollowGameObject(this.player);
+        // if(this.player);
+        this.enemy?.startPatrolling(
+            [
+                new Phaser.Geom.Point(250, 250),
+                new Phaser.Geom.Point(350, 250),
+                new Phaser.Geom.Point(350, 330),
+                new Phaser.Geom.Point(250, 330),
+            ],
+            PatrollingMode.Loop,
+        );
+
+        setTimeout(() => {
+            this.enemy?.stopPatrolling();
+        }, 70000);
+        // if (this.player) this.enemy?.startFollowGameObject(this.player, { distance: 32 * 5 + 1 });
 
         // setTimeout(() => {
         //     this.enemy?.stopFollowingGameObject();

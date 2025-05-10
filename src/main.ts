@@ -8,7 +8,7 @@ const config: Phaser.Types.Core.GameConfig = {
         default: "arcade",
         arcade: {
             gravity: { y: 0, x: 0 },
-            debug: true, // This will show hit box around character for example
+            // debug: true, // This will show hit box around character for example
         },
     },
     scene: [DevLoaderScene, DevelopmentScene],
@@ -21,6 +21,7 @@ const config: Phaser.Types.Core.GameConfig = {
     audio: {
         noAudio: true,
     },
+    plugins: {},
     // Force the FPS limit
     // fps: {
     //     target: 60,
