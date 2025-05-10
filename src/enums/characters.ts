@@ -11,3 +11,8 @@ export enum PatrollingMode {
     Loop = "LOOP",
     BackAndForth = "BACK_AND_FORTH",
 }
+
+export enum VisionMode {
+    Cone = "CONE",
+    Circle = "CIRCLE",
+}

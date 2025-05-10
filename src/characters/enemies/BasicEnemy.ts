@@ -1,6 +1,7 @@
 import * as Phaser from "phaser";
-import { EnemyBehaviourMode, PatrollingMode } from "src/enums/characters";
+import { EnemyBehaviourMode, PatrollingMode, VisionMode } from "src/enums/characters";
 import type Pathfinder from "src/game-engine-tools/Pathfinder";
+import type PlayerWorld from "src/game-engine-tools/PlayerWorld";
 import type Vision from "src/game-engine-tools/Vision";
 import { gameEngineTools } from "src/inversify.config";
 import { GameEngineToolsTypes } from "src/types/inversify";
@@ -9,6 +10,11 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     static BASE_SPEED = 32 * 3;
     private pathfinder: Pathfinder = gameEngineTools.get(GameEngineToolsTypes.Pathfinder);
     private vision: Vision = gameEngineTools.get(GameEngineToolsTypes.Vision);
+    private playerWorld: PlayerWorld = gameEngineTools.get(GameEngineToolsTypes.PlayerWorld);
+    // public visionMode: VisionMode.Cone = VisionMode.Cone;
+    public visionMode: VisionMode.Circle = VisionMode.Circle;
+    public visionAngle = 1;
+    public visionRadius = 120;
     private behaviourMode: EnemyBehaviourMode = EnemyBehaviourMode.Idle;
     private moveToEndPoint?: Phaser.Geom.Point;
     private followTarget?: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image;
@@ -26,6 +32,32 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     /**
+     * Phaser override pre-update function.
+     */
+    override preUpdate(_time: number, _delta: number): void {
+        this.checkObjectsInVision();
+        if (!this.followTarget) {
+            this.vision.showVisionArea(this);
+        }
+    }
+
+    /**
+     * Checks if player world objects are in vision.
+     */
+    private checkObjectsInVision(): void {
+        if (!(this.playerWorld.player instanceof Phaser.Physics.Arcade.Sprite) || this.followTarget) return;
+
+        if (this.vision.isTargetInObserverVision(this.playerWorld.player, this)) {
+            this.stopPatrolling().then(() => {
+                if (this.playerWorld.player instanceof Phaser.Physics.Arcade.Sprite) {
+                    this.startFollowGameObject(this.playerWorld.player);
+                    this.vision.hideVisionArea();
+                }
+            });
+        }
+    }
+
+    /**
      * Move object to next grid, if available. Last tween in the chain will just middle of the grid.
      */
     private async addTileDestinationMoveTweenChain(pathGridSequence: integer[][]): Promise<void> {
@@ -39,6 +71,14 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
                     previousMovePoint.y,
                     currentMovePoint.x,
                     currentMovePoint.y,
+                );
+                this.setAngle(
+                    Phaser.Math.Angle.Between(
+                        previousMovePoint.x,
+                        previousMovePoint.y,
+                        currentMovePoint.x,
+                        currentMovePoint.y,
+                    ),
                 );
                 const duration = (distance / BasicEnemy.BASE_SPEED) * 1000;
                 if (duration > 0) {
@@ -190,6 +230,7 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
      * Handle this object movement to the next grid, to get closer to the follow target.
      */
     private followToNextGrid() {
+        console.log("followToNextGrid");
         if (this.behaviourMode !== EnemyBehaviourMode.Follow) return;
         if (!this.followTarget) return;
 
@@ -213,7 +254,7 @@ export class BasicEnemy extends Phaser.Physics.Arcade.Sprite {
     /**
      * Continuously follow specified sprite or image in the world.
      */
-    public followGameObject(
+    public startFollowGameObject(
         followTarget: Phaser.Physics.Arcade.Sprite | Phaser.Physics.Arcade.Image,
         config?: { distance?: number },
     ) {
