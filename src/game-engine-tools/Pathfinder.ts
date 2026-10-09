@@ -43,14 +43,16 @@ class Pathfinder {
      * Calculate and return single grid, representing first grid for movement to reach (toX, toY) coordinates.
      */
     public calculateNextGrid(fromX: integer, fromY: integer, toX: integer, toY: integer): Array<integer> | undefined {
-        if (this.collisionMatrix.length > 0) {
-            const [fromXTile, fromYTile] = this.getMapGrid(fromX, fromY);
-            const [toXTile, toYTile] = this.getMapGrid(toX, toY);
-            const grid = new PF.Grid(this.collisionMatrix);
-            return this.finder.findPath(fromXTile, fromYTile, toXTile, toYTile, grid)[1];
+        if (this.collisionMatrix.length <= 0) {
+            throw new Error("Collision matrix was not created.");
         }
 
-        throw new Error("Collision matrix was not created.");
+        const [fromXTile, fromYTile] = this.getMapGrid(fromX, fromY);
+        const [toXTile, toYTile] = this.getMapGrid(toX, toY);
+        const grid = new PF.Grid(this.collisionMatrix);
+        const path = this.finder.findPath(fromXTile, fromYTile, toXTile, toYTile, grid)[1];
+
+        return Number.isInteger(path?.[0]) && Number.isInteger(path?.[1]) ? path : undefined;
     }
 
     /**
@@ -66,11 +68,11 @@ class Pathfinder {
     /**
      * Calculate tile center point.
      */
-    public getMapGridMovePoint(gridGridIndex: [integer, integer]): Phaser.Geom.Point {
+    public getMapGridMovePoint(gridGridIndex: [integer, integer]): Phaser.Math.Vector2 {
         const x = gridGridIndex[0] * 32 + 16;
         const y = gridGridIndex[1] * 32 + 16;
 
-        return new Phaser.Geom.Point(x, y);
+        return new Phaser.Math.Vector2(x, y);
     }
 
     /**
@@ -83,7 +85,7 @@ class Pathfinder {
     /**
      * Checks if provided Point is located in a collision grid.
      */
-    public isPointInCollisionGrid(point: Phaser.Geom.Point): boolean {
+    public isPointInCollisionGrid(point: Phaser.Math.Vector2): boolean {
         const gridCell = this.getMapGrid(point.x, point.y);
         return this.collisionMatrix[gridCell[1]]?.[gridCell[0]] === 1;
     }

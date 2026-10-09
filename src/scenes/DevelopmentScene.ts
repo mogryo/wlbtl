@@ -54,7 +54,7 @@ export default class DevelopmentScene extends Phaser.Scene {
 
         // Layer id - name of the layer in Tiled
         map.createLayer("Floor", tileSet);
-        this.wallsLayer = map.createLayer("Walls", tileSet);
+        this.wallsLayer = map.createLayer("Walls", tileSet) as Phaser.Tilemaps.TilemapLayer;
         this.wallsLayer?.setCollisionByProperty({ collides: true });
 
         if (this.wallsLayer?.layer?.data) {
@@ -113,26 +113,26 @@ export default class DevelopmentScene extends Phaser.Scene {
         if (this.wallsLayer && this.player) this.physics.add.collider(this.player, this.wallsLayer);
 
         this.phaserTools.factory = this.add;
-        // if (this.player) this.enemy?.moveToXY(this.enemy.x, this.enemy.y);
-        // if (this.player) this.enemy?.startFollowGameObject(this.player);
+        // if (this.player) this.enemy?.movement.moveToXY(this.enemy.x, this.enemy.y);
+        // if (this.player) this.enemy?.movement.startFollowGameObject(this.player);
         // if(this.player);
-        this.enemy?.startPatrolling(
+        this.enemy?.movement.startPatrolling(
             [
-                new Phaser.Geom.Point(250, 250),
-                new Phaser.Geom.Point(350, 250),
-                new Phaser.Geom.Point(350, 330),
-                new Phaser.Geom.Point(250, 330),
+                new Phaser.Math.Vector2(250, 250),
+                new Phaser.Math.Vector2(350, 250),
+                new Phaser.Math.Vector2(350, 330),
+                new Phaser.Math.Vector2(250, 330),
             ],
             PatrollingMode.Loop,
         );
 
         setTimeout(() => {
-            this.enemy?.stopPatrolling();
+            this.enemy?.movement.stopPatrolling();
         }, 70000);
-        // if (this.player) this.enemy?.startFollowGameObject(this.player, { distance: 32 * 5 + 1 });
+        // if (this.player) this.enemy?.movement.startFollowGameObject(this.player, { distance: 32 * 5 + 1 });
 
         // setTimeout(() => {
-        //     this.enemy?.stopFollowingGameObject();
+        //     this.enemy?.movement.stopFollowingGameObject();
         // }, 7000);
     }
 
